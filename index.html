@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLENEX - Gestión Completa</title>
+    <!-- Vinculación del framework de gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Vinculación del archivo CSS -->
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body onclick="document.body.classList.remove('modo-edicion')">
+
+    <h2 style="color:var(--color-texto); margin: 5px 0;">GLENEX</h2>
+    
+    <div class="selector-periodo">
+        <button class="btn-periodo" onclick="cambiarPeriodo('diario', this)">DÍA</button>
+        <button class="btn-periodo" onclick="cambiarPeriodo('semanal', this)">SEMANA</button>
+        <button class="btn-periodo active" onclick="cambiarPeriodo('mensual', this)">MES</button>
+        <button class="btn-periodo" onclick="cambiarPeriodo('anual', this)">AÑO</button>
+    </div>
+
+    <div id="nav-fecha" class="navegador-fecha">
+        <button class="calc-btn" style="width:30px; height:30px; padding:0" onclick="cambiarDia(-1)">‹</button>
+        <span id="fecha-actual-texto">Hoy</span>
+        <button class="calc-btn" style="width:30px; height:30px; padding:0" onclick="cambiarDia(1)">›</button>
+        <button class="calc-btn" onclick="document.getElementById('picker-fecha').showPicker()">📅</button>
+        <input type="date" id="picker-fecha" style="position:absolute; opacity:0; width:0;" onchange="seleccionarFechaCalendario(this.value)">
+    </div>
+
+    <button class="calc-btn" style="border: 2px dashed var(--color-cesped); color: var(--color-cesped); background: white; border-radius: 20px; margin: 5px 0;" onclick="event.stopPropagation(); abrirModalAdd('gasto')">Añadir producto o servicio +</button>
+
+    <div class="contenedor-central" id="contenedor-iconos">
+        <div class="anillo-grafico">
+            <canvas id="canvasGrafico"></canvas>
+            <div style="z-index:2; text-align:center; pointer-events:none;">
+                <div id="display-centro" style="font-size: 1rem; font-weight: bold;">Bs 0.00</div>
+                <div id="sub-centro" style="font-size: 0.6rem; color: #888;">Cargando...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="barra-saldo">Saldo <span id="saldo-total">Bs 0.00</span></div>
+    
+    <button class="calc-btn" style="background: var(--color-madera); color: white; border-radius: 10px; margin-bottom: 15px; font-size: 12px; padding: 8px 20px;" onclick="abrirGraficoRendimiento()">📊 Ver Gráfico de Rendimiento</button>
+
+    <div style="display:flex; gap:15px; align-items:center;">
+        <button class="calc-btn" style="width:70px; height:70px; border-radius:50%;" onclick="abrirCalc('gasto', 'Gasto Gral', '💸', '#e53935')">GASTO</button>
+        <button class="calc-btn" style="width:55px; height:55px; border-radius:50%; font-size:20px;" onclick="abrirHistorial()">📜</button>
+        <button class="calc-btn" style="width:70px; height:70px; border-radius:50%;" onclick="abrirSelectorIngresos()">INGRESOS</button>
+    </div>
+
+    <div id="modal-selector-ingresos" class="modal">
+        <div class="modal-body">
+            <h3 style="text-align:center; margin:0;">TIPO DE INGRESO</h3>
+            <button class="calc-btn" style="width:100%; margin: 10px 0; border: 1px dashed green; color: green;" onclick="abrirModalAdd('ingreso')">Nuevo origen +</button>
+            <div id="grid-ingresos" class="grid-iconos scroll-content"></div>
+            <button class="calc-btn btn-listo" style="width:100%" onclick="cerrarModal('modal-selector-ingresos')">CANCELAR</button>
+        </div>
+    </div>
+
+    <div id="modal-rendimiento" class="modal">
+        <div class="modal-body" style="width: 95%; max-width: 400px; background: #131722; color: white;">
+            <h3 style="text-align:center; margin:0; color: #d1d4dc;">RENDIMIENTO REAL</h3>
+            <div style="text-align:center;">
+                <span style="font-size: 12px; color: #888;">Tu estado actual es:</span><br>
+                <div id="estado-texto">CALCULANDO...</div>
+            </div>
+            <div style="height: 250px; margin: 15px 0; background: #1e222d; border-radius: 10px; padding: 10px;">
+                <canvas id="canvasRendimiento"></canvas>
+            </div>
+            <button class="calc-btn" style="width:100%; background: #2962ff; color: white;" onclick="cerrarModal('modal-rendimiento')">VOLVER</button>
+        </div>
+    </div>
+
+    <div id="modal-historial" class="modal">
+        <div class="modal-body">
+            <h3 style="text-align:center; margin:0;">HISTORIAL</h3>
+            <div style="display:flex; gap:5px; margin-top:10px;">
+                <button class="calc-btn" style="flex:1; font-size:12px;" onclick="abrirPapelera()">Papelera 🗑️</button>
+                <button class="calc-btn" style="flex:1; font-size:12px; color:red;" onclick="confirmarBorrarTodo()">Borrar Todo</button>
+            </div>
+            <div id="lista-historial" class="scroll-content"></div>
+            <button class="calc-btn btn-listo" style="width:100%" onclick="cerrarModal('modal-historial')">CERRAR</button>
+        </div>
+    </div>
+
+    <div id="modal-papelera" class="modal">
+        <div class="modal-body">
+            <h3 style="text-align:center; margin:0;">PAPELERA</h3>
+            <button class="calc-btn" style="width:100%; margin-top:10px; color:red; font-size:12px;" onclick="confirmarVaciarPapelera()">VACIAR PAPELERA DEF.</button>
+            <div id="lista-papelera" class="scroll-content"></div>
+            <button class="calc-btn btn-listo" style="width:100%" onclick="cerrarModal('modal-papelera')">VOLVER</button>
+        </div>
+    </div>
+
+    <div id="modal-confirm" class="modal">
+        <div class="modal-body" style="text-align:center">
+            <p id="confirm-text" style="font-weight:bold;"></p>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button id="confirm-si" class="calc-btn btn-listo" style="flex:1">SÍ</button>
+                <button class="calc-btn" style="flex:1" onclick="cerrarModal('modal-confirm')">NO</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-add-cat" class="modal">
+        <div class="modal-body">
+            <h3 id="add-cat-titulo" style="text-align:center">Nueva Categoría</h3>
+            <input type="text" id="new-cat-name" class="input-estilo" placeholder="Nombre">
+            <input type="text" id="new-cat-emoji" class="input-estilo" placeholder="Emoji">
+            <button class="calc-btn btn-listo" style="width:100%" onclick="guardarNuevaCategoria()">GUARDAR</button>
+            <button class="calc-btn" style="width:100%; margin-top:5px;" onclick="cerrarModal('modal-add-cat')">CANCELAR</button>
+        </div>
+    </div>
+
+    <div id="modal-calc" class="modal">
+        <div class="modal-body">
+            <div id="calc-titulo" style="text-align:center; font-weight:bold; margin-bottom:5px;"></div>
+            <input type="text" id="input-nota" class="input-estilo" placeholder="Nota...">
+            <div id="pantalla" style="background:#f1f8e9; text-align:right; font-size:24px; padding:10px; border-radius:10px; margin-bottom:10px;">0</div>
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:5px;">
+                <button class="calc-btn" onclick="press('7')">7</button><button class="calc-btn" onclick="press('8')">8</button><button class="calc-btn" onclick="press('9')">9</button><button class="calc-btn" onclick="limpiar()">C</button>
+                <button class="calc-btn" onclick="press('4')">4</button><button class="calc-btn" onclick="press('5')">5</button><button class="calc-btn" onclick="press('6')">6</button><button class="calc-btn" onclick="backspace()">⌫</button>
+                <button class="calc-btn" onclick="press('1')">1</button><button class="calc-btn" onclick="press('2')">2</button><button class="calc-btn" onclick="press('3')">3</button><button class="calc-btn" onclick="press('.')">.</button>
+                <button class="calc-btn" onclick="press('0')">0</button><button class="calc-btn" onclick="press('00')">00</button>
+                <button class="calc-btn btn-listo" style="grid-column: span 2;" onclick="finalizar()">LISTO</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vinculación del archivo JavaScript -->
+    <script src="js/script.js"></script>
+</body>
+</html>
